@@ -1,189 +1,165 @@
 import { Bot, InlineKeyboard, webhookCallback } from "grammy";
 import { chunk } from "lodash";
 import express from "express";
-import { applyTextEffect, Variant } from "./textEffects";
+import DuckTimer from "duck-timer";
+import axios from "axios";
 
-import type { Variant as TextEffectVariant } from "./textEffects";
-
+/* BOT */
 // Create a bot using the Telegram token
 const bot = new Bot(process.env.TELEGRAM_TOKEN || "");
-
-// Handle the /yo command to greet the user
-bot.command("yo", (ctx) => ctx.reply(`Yo ${ctx.from?.username}`));
-
-// Handle the /effect command to apply text effects using an inline keyboard
-type Effect = { code: TextEffectVariant; label: string };
-const allEffects: Effect[] = [
-  {
-    code: "w",
-    label: "Monospace",
-  },
-  {
-    code: "b",
-    label: "Bold",
-  },
-  {
-    code: "i",
-    label: "Italic",
-  },
-  {
-    code: "d",
-    label: "Doublestruck",
-  },
-  {
-    code: "o",
-    label: "Circled",
-  },
-  {
-    code: "q",
-    label: "Squared",
-  },
-];
-
-const effectCallbackCodeAccessor = (effectCode: TextEffectVariant) =>
-  `effect-${effectCode}`;
-
-const effectsKeyboardAccessor = (effectCodes: string[]) => {
-  const effectsAccessor = (effectCodes: string[]) =>
-    effectCodes.map((code) =>
-      allEffects.find((effect) => effect.code === code)
-    );
-  const effects = effectsAccessor(effectCodes);
-
-  const keyboard = new InlineKeyboard();
-  const chunkedEffects = chunk(effects, 3);
-  for (const effectsChunk of chunkedEffects) {
-    for (const effect of effectsChunk) {
-      effect &&
-        keyboard.text(effect.label, effectCallbackCodeAccessor(effect.code));
-    }
-    keyboard.row();
-  }
-
-  return keyboard;
-};
-
-const textEffectResponseAccessor = (
-  originalText: string,
-  modifiedText?: string
-) =>
-  `Original: ${originalText}` +
-  (modifiedText ? `\nModified: ${modifiedText}` : "");
-
-const parseTextEffectResponse = (
-  response: string
-): {
-  originalText: string;
-  modifiedText?: string;
-} => {
-  const originalText = (response.match(/Original: (.*)/) as any)[1];
-  const modifiedTextMatch = response.match(/Modified: (.*)/);
-
-  let modifiedText;
-  if (modifiedTextMatch) modifiedText = modifiedTextMatch[1];
-
-  if (!modifiedTextMatch) return { originalText };
-  else return { originalText, modifiedText };
-};
-
-bot.command("effect", (ctx) =>
-  ctx.reply(textEffectResponseAccessor(ctx.match), {
-    reply_markup: effectsKeyboardAccessor(
-      allEffects.map((effect) => effect.code)
-    ),
-  })
-);
-
-// Handle inline queries
-const queryRegEx = /effect (monospace|bold|italic) (.*)/;
-bot.inlineQuery(queryRegEx, async (ctx) => {
-  const fullQuery = ctx.inlineQuery.query;
-  const fullQueryMatch = fullQuery.match(queryRegEx);
-  if (!fullQueryMatch) return;
-
-  const effectLabel = fullQueryMatch[1];
-  const originalText = fullQueryMatch[2];
-
-  const effectCode = allEffects.find(
-    (effect) => effect.label.toLowerCase() === effectLabel.toLowerCase()
-  )?.code;
-  const modifiedText = applyTextEffect(originalText, effectCode as Variant);
-
-  await ctx.answerInlineQuery(
-    [
-      {
-        type: "article",
-        id: "text-effect",
-        title: "Text Effects",
-        input_message_content: {
-          message_text: `Original: ${originalText}
-Modified: ${modifiedText}`,
-          parse_mode: "HTML",
-        },
-        reply_markup: new InlineKeyboard().switchInline("Share", fullQuery),
-        url: "http://t.me/EludaDevSmarterBot",
-        description: "Create stylish Unicode text, all within Telegram.",
-      },
-    ],
-    { cache_time: 30 * 24 * 3600 } // one month in seconds
-  );
-});
-
-// Return empty result list for other queries.
-bot.on("inline_query", (ctx) => ctx.answerInlineQuery([]));
-
-// Handle text effects from the effect keyboard
-for (const effect of allEffects) {
-  const allEffectCodes = allEffects.map((effect) => effect.code);
-
-  bot.callbackQuery(effectCallbackCodeAccessor(effect.code), async (ctx) => {
-    const { originalText } = parseTextEffectResponse(ctx.msg?.text || "");
-    const modifiedText = applyTextEffect(originalText, effect.code);
-
-    await ctx.editMessageText(
-      textEffectResponseAccessor(originalText, modifiedText),
-      {
-        reply_markup: effectsKeyboardAccessor(
-          allEffectCodes.filter((code) => code !== effect.code)
-        ),
-      }
-    );
-  });
-}
-
-// Handle the /about command
-const aboutUrlKeyboard = new InlineKeyboard().url(
-  "Host your own bot for free.",
-  "https://cyclic.sh/"
-);
-
 // Suggest commands in the menu
 bot.api.setMyCommands([
   { command: "yo", description: "Be greeted by the bot" },
-  {
-    command: "effect",
-    description: "Apply text effects on the text. (usage: /effect [text])",
-  },
+  { command: "now", description: "per ricevere dati attuali" },
 ]);
 
-// Handle all other messages and the /start command
-const introductionMessage = `Hello! I'm a Telegram bot.
-I'm powered by Cyclic, the next-generation serverless computing platform.
-
-<b>Commands</b>
-/yo - Be greeted by me
-/effect [text] - Show a keyboard to apply text effects to [text]`;
-
+/* HANDLE MESSAGES */
+bot.command("yo", (ctx) => ctx.reply(`Yo ${ctx.from?.username}`));
+bot.command("now", async (ctx) => {
+  const msg = await getDataFromSolarEdge(true);
+  if (msg && msg != "KO") {
+    ctx.reply(msg, {
+      parse_mode: "HTML",
+    });
+  }
+});
+const introductionMessage = `/now per ricevere dati attuali\nLe notifiche imporanti te le mando io!\nOgni ora se mandi in rete più di 0.3kW\n(con warning se > 0.5kW; con alert se > 2kW)`;
 const replyWithIntro = (ctx: any) =>
-  ctx.reply(introductionMessage, {
-    reply_markup: aboutUrlKeyboard,
-    parse_mode: "HTML",
-  });
-
+  ctx.reply(introductionMessage, { parse_mode: "HTML" });
 bot.command("start", replyWithIntro);
 bot.on("message", replyWithIntro);
+bot.catch((err: any) => {
+  console.log(err);
+  const chat = err.ctx.chat.id;
+  console.log(`Error for User <code>${chat}</code>: ${err.message}`);
+});
 
-// Start the server
+/* API FETCH */
+const getDataFromSolarEdge = async (forcePrint = false) => {
+  try {
+    console.log(
+      `[${Date.now().toString()}]Solar edge update execution... [forcePrint: ${forcePrint}]`
+    );
+    const url = `https://monitoringapi.solaredge.com/site/${process.env.MY_SOLAR_EDGE_SITE}/currentPowerFlow?api_key=${process.env.API_KEY}`;
+    const response = await axios.get(url);
+    let json = await response.data;
+    json = json["siteCurrentPowerFlow"];
+    // console.log(json);
+    const sun = json["PV"];
+    const battery = json["STORAGE"];
+    const load = json["LOAD"];
+    const grid = json["GRID"];
+
+    const sunValue = sun["currentPower"];
+    const batteryPerc = battery["chargeLevel"];
+    const loadValue = load["currentPower"];
+    const gridValue = grid["currentPower"];
+
+    const connections = json["connections"];
+
+    let sendingToGrid = false;
+    for (let i = 0; i < connections.length; i++) {
+      const c = connections[i];
+      console.log("connection found:", c);
+      if (c["to"].toUpperCase() == "GRID") {
+        sendingToGrid = true;
+        break;
+      }
+    }
+
+    const isTimerElapsedFromlastUpdate = isEnd();
+    console.log(
+      `CHECK: isEnd==true?:${isTimerElapsedFromlastUpdate}, sendingToGrid: ${sendingToGrid} , gridValue>0.3? : ${gridValue}`
+    );
+    if (
+      (isTimerElapsedFromlastUpdate && sendingToGrid && gridValue > 0.3) ||
+      forcePrint
+    ) {
+      start();
+    } else {
+      console.log("NO UPDATE TO DO: return");
+      return "KO";
+    }
+
+    /* SEND UPDATE */
+
+    const statusKey = "status";
+
+    const sunText = `Sun Power 🌤️: <b>${sunValue}kW</b>, stato: ${sun[statusKey]}`;
+    const batteryText = `Battery% 🔋: <b>${batteryPerc}%</b>, stato: ${battery[statusKey]}`;
+    const loadText = `Consumi 🏠: <b>${loadValue}kW</b>, stato: ${load[statusKey]}`;
+
+    const message = [sunText, batteryText, loadText];
+    let messageTxt = "";
+
+    if (sendingToGrid && gridValue > 2) {
+      messageTxt += `🚨🚨🚨Troppa energia in rete: <b>${gridValue}kW</b> USALA!!🚨🚨🚨\n`;
+    } else if (sendingToGrid && gridValue > 0.5) {
+      messageTxt += `⚠️Attenzione stai mandando energia in rete, <b>${gridValue}kW</b>! Sfruttala ORA⚠️\n`;
+    }
+    messageTxt += "STATO ATTUALE:\n";
+    messageTxt += message.join("\n");
+
+    return messageTxt;
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+/* TIMER PER POLLING A SOLAR EDGE */
+// const pollingRateSec: any = process.env.POLLING_RATE_SEC;
+const pollingRateSec: any = 5;
+const timer = new DuckTimer({ interval: pollingRateSec * 1000 }); // interval time: 100ms = 0.1sec.
+timer
+  .onInterval(async (res: any) => {
+    const msg = await getDataFromSolarEdge();
+    if (msg && msg != "KO") {
+      bot.api.sendMessage(process.env.chatID + "", msg);
+    }
+  })
+  .start();
+var startTime: any, endTime: any;
+
+const start = () => {
+  startTime = new Date();
+};
+
+const isEnd = () => {
+  /* RETURN TIME ELAPSED SINCE LAST PERIODIC UPDATE */
+
+  if (!startTime) return true; // TAKE ACTION [is the first time]
+
+  endTime = new Date();
+  var timeDiff = endTime - startTime; //in ms
+
+  // strip the ms -> seconds
+  var timeDiffSeconds = Math.round(timeDiff / 1000);
+
+  //hours
+  var timeDiffHours = Math.round(timeDiffSeconds / 60 / 60);
+
+  console.log(
+    "time elapsed: " +
+      timeDiffHours +
+      "hours" +
+      `(seconds : ${timeDiffSeconds})`
+  );
+
+  if (process.env.NODE_ENV === "production") {
+    //every hour
+    if (timeDiffHours >= 1) {
+      return true;
+    }
+  } else {
+    //every 5 seconds
+    if (timeDiffSeconds >= 5) {
+      return true;
+    }
+  }
+  return false; //NO ACTION
+};
+
+/* SERVER START */
 if (process.env.NODE_ENV === "production") {
   // Use Webhooks for the production server
   const app = express();
