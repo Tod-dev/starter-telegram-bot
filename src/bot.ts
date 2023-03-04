@@ -3,6 +3,7 @@ import { chunk } from "lodash";
 import express from "express";
 import DuckTimer from "duck-timer";
 import axios from "axios";
+require('dotenv').config()
 
 /* BOT */
 // Create a bot using the Telegram token

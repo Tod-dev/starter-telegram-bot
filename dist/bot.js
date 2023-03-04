@@ -7,6 +7,7 @@ const grammy_1 = require("grammy");
 const express_1 = __importDefault(require("express"));
 const duck_timer_1 = __importDefault(require("duck-timer"));
 const axios_1 = __importDefault(require("axios"));
+require('dotenv').config();
 /* BOT */
 // Create a bot using the Telegram token
 const bot = new grammy_1.Bot(process.env.TELEGRAM_TOKEN || "");
