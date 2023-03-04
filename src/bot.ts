@@ -38,7 +38,9 @@ bot.catch((err: any) => {
 const getDataFromSolarEdge = async (forcePrint = false) => {
   try {
     console.log(
-      `[${Date.now().toString()}]Solar edge update execution... [forcePrint: ${forcePrint}]`
+      `[${new Date(
+        Date.now()
+      ).toDateString()}]Solar edge update execution... [forcePrint: ${forcePrint}]`
     );
     const url = `https://monitoringapi.solaredge.com/site/${process.env.MY_SOLAR_EDGE_SITE}/currentPowerFlow?api_key=${process.env.API_KEY}`;
     const response = await axios.get(url);
@@ -82,6 +84,7 @@ const getDataFromSolarEdge = async (forcePrint = false) => {
     }
 
     /* SEND UPDATE */
+    console.log("\x1b[33m SENDING UPDATE! \x1b[0m");
 
     const statusKey = "status";
 
@@ -107,14 +110,14 @@ const getDataFromSolarEdge = async (forcePrint = false) => {
 };
 
 /* TIMER PER POLLING A SOLAR EDGE */
-// const pollingRateSec: any = process.env.POLLING_RATE_SEC;
-const pollingRateSec: any = 5;
-const timer = new DuckTimer({ interval: pollingRateSec * 1000 }); // interval time: 100ms = 0.1sec.
+const pollingRateSec: any =
+  process.env.NODE_ENV === "production" ? process.env.POLLING_RATE_SEC : process.env.POLLING_RATE_SEC_DEV;
+const timer = new DuckTimer({ interval: pollingRateSec * 1000 }); // interval time in ms
 timer
   .onInterval(async (res: any) => {
     const msg = await getDataFromSolarEdge();
     if (msg && msg != "KO") {
-      bot.api.sendMessage(process.env.chatID + "", msg);
+      bot.api.sendMessage(process.env.chatID + "", msg, { parse_mode: "HTML" });
     }
   })
   .start();
@@ -136,23 +139,30 @@ const isEnd = () => {
   var timeDiffSeconds = Math.round(timeDiff / 1000);
 
   //hours
-  var timeDiffHours = Math.round(timeDiffSeconds / 60 / 60);
-
-  console.log(
-    "time elapsed: " +
-      timeDiffHours +
-      "hours" +
-      `(seconds : ${timeDiffSeconds})`
-  );
+  var timeDiffMinutes = Math.round(timeDiffSeconds / 60 );
 
   if (process.env.NODE_ENV === "production") {
+    const mustBe:number = parseInt(process.env.MINUTES_BEFORE_UPDATE+"");
     //every hour
-    if (timeDiffHours >= 1) {
+    console.log(
+      "time elapsed: " +
+      timeDiffMinutes +
+        "min." +
+        `[MUST BE >= : : ${mustBe}]`
+    );
+    if (timeDiffMinutes >= mustBe) {
       return true;
     }
   } else {
     //every 5 seconds
-    if (timeDiffSeconds >= 5) {
+    const mustBe :number= parseInt(process.env.SECONDS_BEFORE_UPDATE_DEV+"");
+    console.log(
+      "time elapsed: " +
+      timeDiffSeconds +
+        "sec." +
+        `[MUST BE >= : ${mustBe}`
+    );
+    if (timeDiffSeconds >= mustBe) {
       return true;
     }
   }
