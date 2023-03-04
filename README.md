@@ -1,4 +1,4 @@
-# Telegram Bot, built on Cyclic 🤖
+# Telegram Bot 🤖 to monitor energy production 
 
 Get real time alerts of energy production of solar panels and home battery percentage from [mysolaredge].
 
