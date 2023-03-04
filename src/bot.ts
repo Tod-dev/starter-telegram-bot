@@ -161,7 +161,7 @@ const isEnd = () => {
       "time elapsed: " +
       timeDiffSeconds +
         "sec." +
-        `[MUST BE >= : ${mustBe}`
+        `[MUST BE >= : ${mustBe}]`
     );
     if (timeDiffSeconds >= mustBe) {
       return true;
