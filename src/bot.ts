@@ -2,7 +2,7 @@ import { Bot, webhookCallback } from "grammy";
 import express from "express";
 import DuckTimer from "duck-timer";
 import axios from "axios";
-require('dotenv').config()
+require("dotenv").config();
 
 /* BOT */
 // Create a bot using the Telegram token
@@ -26,6 +26,7 @@ bot.command("now", async (ctx) => {
 const introductionMessage = `/now per ricevere dati attuali\nLe notifiche imporanti te le mando io!\nOgni ora se mandi in rete più di 0.3kW\n(con warning se > 0.5kW; con alert se > 2kW)`;
 const replyWithIntro = (ctx: any) =>
   ctx.reply(introductionMessage, { parse_mode: "HTML" });
+
 bot.command("start", replyWithIntro);
 bot.on("message", replyWithIntro);
 bot.catch((err: any) => {
@@ -111,7 +112,9 @@ const getDataFromSolarEdge = async (forcePrint = false) => {
 
 /* TIMER PER POLLING A SOLAR EDGE */
 const pollingRateSec: any =
-  process.env.NODE_ENV === "production" ? process.env.POLLING_RATE_SEC : process.env.POLLING_RATE_SEC_DEV;
+  process.env.NODE_ENV === "production"
+    ? process.env.POLLING_RATE_SEC
+    : process.env.POLLING_RATE_SEC_DEV;
 const timer = new DuckTimer({ interval: pollingRateSec * 1000 }); // interval time in ms
 timer
   .onInterval(async (res: any) => {
@@ -139,28 +142,22 @@ const isEnd = () => {
   var timeDiffSeconds = Math.round(timeDiff / 1000);
 
   //hours
-  var timeDiffMinutes = Math.round(timeDiffSeconds / 60 );
+  var timeDiffMinutes = Math.round(timeDiffSeconds / 60);
 
   if (process.env.NODE_ENV === "production") {
-    const mustBe:number = parseInt(process.env.MINUTES_BEFORE_UPDATE+"");
+    const mustBe: number = parseInt(process.env.MINUTES_BEFORE_UPDATE + "");
     //every hour
     console.log(
-      "time elapsed: " +
-      timeDiffMinutes +
-        "min." +
-        `[MUST BE >= : : ${mustBe}]`
+      "time elapsed: " + timeDiffMinutes + "min." + `[MUST BE >= : : ${mustBe}]`
     );
     if (timeDiffMinutes >= mustBe) {
       return true;
     }
   } else {
     //every 5 seconds
-    const mustBe :number= parseInt(process.env.SECONDS_BEFORE_UPDATE_DEV+"");
+    const mustBe: number = parseInt(process.env.SECONDS_BEFORE_UPDATE_DEV + "");
     console.log(
-      "time elapsed: " +
-      timeDiffSeconds +
-        "sec." +
-        `[MUST BE >= : ${mustBe}]`
+      "time elapsed: " + timeDiffSeconds + "sec." + `[MUST BE >= : ${mustBe}]`
     );
     if (timeDiffSeconds >= mustBe) {
       return true;
@@ -172,7 +169,7 @@ const isEnd = () => {
 /* SERVER START */
 if (process.env.NODE_ENV === "production") {
   // Use Webhooks for the production server
-  console.log("BOT RUNNING ON PRODUCTION")
+  console.log("BOT RUNNING ON PRODUCTION");
   const app = express();
   app.use(express.json());
   app.use(webhookCallback(bot, "express"));
@@ -182,7 +179,7 @@ if (process.env.NODE_ENV === "production") {
     console.log(`Bot listening on port ${PORT}`);
   });
 } else {
-  console.log("BOT RUNNING ON DEVELOPMENT")
+  console.log("BOT RUNNING ON DEVELOPMENT");
   // Use Long Polling for development
   bot.start();
 }
