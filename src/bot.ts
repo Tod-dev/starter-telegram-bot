@@ -44,6 +44,7 @@ const getDataFromSolarEdge = async (forcePrint = false) => {
       ).toDateString()}]Solar edge update execution... [forcePrint: ${forcePrint}]`
     );
     const url = `https://monitoringapi.solaredge.com/site/${process.env.MY_SOLAR_EDGE_SITE}/currentPowerFlow?api_key=${process.env.API_KEY}`;
+    //console.log(url);
     const response = await axios.get(url);
     let json = await response.data;
     json = json["siteCurrentPowerFlow"];
@@ -106,7 +107,7 @@ const getDataFromSolarEdge = async (forcePrint = false) => {
 
     return messageTxt;
   } catch (error) {
-    console.error(error);
+    console.log(error);
   }
 };
 
@@ -167,6 +168,7 @@ const isEnd = () => {
 };
 
 /* SERVER START */
+/*
 if (process.env.NODE_ENV === "production") {
   // Use Webhooks for the production server
   console.log("BOT RUNNING ON PRODUCTION");
@@ -178,8 +180,9 @@ if (process.env.NODE_ENV === "production") {
   app.listen(PORT, () => {
     console.log(`Bot listening on port ${PORT}`);
   });
-} else {
-  console.log("BOT RUNNING ON DEVELOPMENT");
-  // Use Long Polling for development
-  bot.start();
-}
+} else { */
+
+console.log("BOT RUNNING ON DEVELOPMENT");
+// Use Long Polling for development
+bot.start();
+//}
