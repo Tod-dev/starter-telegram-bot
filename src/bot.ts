@@ -44,6 +44,7 @@ const getDataFromSolarEdge = async (forcePrint = false) => {
       ).toDateString()}]Solar edge update execution... [forcePrint: ${forcePrint}]`
     );
     const url = `https://monitoringapi.solaredge.com/site/${process.env.MY_SOLAR_EDGE_SITE}/currentPowerFlow?api_key=${process.env.API_KEY}`;
+    //console.log(url);
     const response = await axios.get(url);
     let json = await response.data;
     json = json["siteCurrentPowerFlow"];
@@ -106,7 +107,7 @@ const getDataFromSolarEdge = async (forcePrint = false) => {
 
     return messageTxt;
   } catch (error) {
-    console.error(error);
+    console.log(error);
   }
 };
 

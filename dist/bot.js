@@ -4,10 +4,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const grammy_1 = require("grammy");
-const express_1 = __importDefault(require("express"));
 const duck_timer_1 = __importDefault(require("duck-timer"));
 const axios_1 = __importDefault(require("axios"));
-require('dotenv').config();
+require("dotenv").config();
 /* BOT */
 // Create a bot using the Telegram token
 const bot = new grammy_1.Bot(process.env.TELEGRAM_TOKEN || "");
@@ -40,6 +39,7 @@ const getDataFromSolarEdge = async (forcePrint = false) => {
     try {
         console.log(`[${new Date(Date.now()).toDateString()}]Solar edge update execution... [forcePrint: ${forcePrint}]`);
         const url = `https://monitoringapi.solaredge.com/site/${process.env.MY_SOLAR_EDGE_SITE}/currentPowerFlow?api_key=${process.env.API_KEY}`;
+        //console.log(url);
         const response = await axios_1.default.get(url);
         let json = await response.data;
         json = json["siteCurrentPowerFlow"];
@@ -91,11 +91,13 @@ const getDataFromSolarEdge = async (forcePrint = false) => {
         return messageTxt;
     }
     catch (error) {
-        console.error(error);
+        console.log(error);
     }
 };
 /* TIMER PER POLLING A SOLAR EDGE */
-const pollingRateSec = process.env.NODE_ENV === "production" ? process.env.POLLING_RATE_SEC : process.env.POLLING_RATE_SEC_DEV;
+const pollingRateSec = process.env.NODE_ENV === "production"
+    ? process.env.POLLING_RATE_SEC
+    : process.env.POLLING_RATE_SEC_DEV;
 const timer = new duck_timer_1.default({ interval: pollingRateSec * 1000 }); // interval time in ms
 timer
     .onInterval(async (res) => {
@@ -122,10 +124,7 @@ const isEnd = () => {
     if (process.env.NODE_ENV === "production") {
         const mustBe = parseInt(process.env.MINUTES_BEFORE_UPDATE + "");
         //every hour
-        console.log("time elapsed: " +
-            timeDiffMinutes +
-            "min." +
-            `[MUST BE >= : : ${mustBe}]`);
+        console.log("time elapsed: " + timeDiffMinutes + "min." + `[MUST BE >= : : ${mustBe}]`);
         if (timeDiffMinutes >= mustBe) {
             return true;
         }
@@ -133,10 +132,7 @@ const isEnd = () => {
     else {
         //every 5 seconds
         const mustBe = parseInt(process.env.SECONDS_BEFORE_UPDATE_DEV + "");
-        console.log("time elapsed: " +
-            timeDiffSeconds +
-            "sec." +
-            `[MUST BE >= : ${mustBe}]`);
+        console.log("time elapsed: " + timeDiffSeconds + "sec." + `[MUST BE >= : ${mustBe}]`);
         if (timeDiffSeconds >= mustBe) {
             return true;
         }
@@ -144,19 +140,20 @@ const isEnd = () => {
     return false; //NO ACTION
 };
 /* SERVER START */
+/*
 if (process.env.NODE_ENV === "production") {
-    // Use Webhooks for the production server
-    console.log("BOT RUNNING ON PRODUCTION");
-    const app = (0, express_1.default)();
-    app.use(express_1.default.json());
-    app.use((0, grammy_1.webhookCallback)(bot, "express"));
-    const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
-        console.log(`Bot listening on port ${PORT}`);
-    });
-}
-else {
-    console.log("BOT RUNNING ON DEVELOPMENT");
-    // Use Long Polling for development
-    bot.start();
-}
+  // Use Webhooks for the production server
+  console.log("BOT RUNNING ON PRODUCTION");
+  const app = express();
+  app.use(express.json());
+  app.use(webhookCallback(bot, "express"));
+
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Bot listening on port ${PORT}`);
+  });
+} else { */
+console.log("BOT RUNNING ON DEVELOPMENT");
+// Use Long Polling for development
+bot.start();
+//}
