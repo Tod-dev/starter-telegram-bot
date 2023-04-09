@@ -167,7 +167,7 @@ const isEnd = () => {
 };
 
 /* SERVER START */
-if (process.env.NODE_ENV === "production") {
+/*if (process.env.NODE_ENV === "production") {
   // Use Webhooks for the production server
   console.log("BOT RUNNING ON PRODUCTION");
   const app = express();
@@ -178,8 +178,8 @@ if (process.env.NODE_ENV === "production") {
   app.listen(PORT, () => {
     console.log(`Bot listening on port ${PORT}`);
   });
-} else {
-  console.log("BOT RUNNING ON DEVELOPMENT");
-  // Use Long Polling for development
-  bot.start();
-}
+} else {*/
+console.log("BOT RUNNING ON PROD. POLLING");
+// Use Long Polling for development
+bot.start();
+//}
