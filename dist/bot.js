@@ -38,8 +38,14 @@ bot.catch((err) => {
 const getDataFromSolarEdge = async (forcePrint = false) => {
     try {
         console.log(`[${new Date(Date.now()).toDateString()}]Solar edge update execution... [forcePrint: ${forcePrint}]`);
+        const isTimerElapsedFromlastUpdate = isEnd();
+        if (!isTimerElapsedFromlastUpdate && !forcePrint) {
+            console.log("NO UPDATE TO DO: return");
+            return "KO";
+        }
         const url = `https://monitoringapi.solaredge.com/site/${process.env.MY_SOLAR_EDGE_SITE}/currentPowerFlow?api_key=${process.env.API_KEY}`;
         //console.log(url);
+        console.log("CALLING SOLAREDGE");
         const response = await axios_1.default.get(url);
         let json = await response.data;
         json = json["siteCurrentPowerFlow"];
@@ -62,7 +68,6 @@ const getDataFromSolarEdge = async (forcePrint = false) => {
                 break;
             }
         }
-        const isTimerElapsedFromlastUpdate = isEnd();
         console.log(`CHECK: isEnd==true?:${isTimerElapsedFromlastUpdate}, sendingToGrid: ${sendingToGrid} , gridValue>0.3? : ${gridValue}`);
         if ((isTimerElapsedFromlastUpdate && sendingToGrid && gridValue > 0.3) ||
             forcePrint) {
@@ -140,8 +145,7 @@ const isEnd = () => {
     return false; //NO ACTION
 };
 /* SERVER START */
-/*
-if (process.env.NODE_ENV === "production") {
+/*if (process.env.NODE_ENV === "production") {
   // Use Webhooks for the production server
   console.log("BOT RUNNING ON PRODUCTION");
   const app = express();
@@ -152,8 +156,8 @@ if (process.env.NODE_ENV === "production") {
   app.listen(PORT, () => {
     console.log(`Bot listening on port ${PORT}`);
   });
-} else { */
-console.log("BOT RUNNING ON DEVELOPMENT");
+} else {*/
+console.log("BOT RUNNING ON PROD. POLLING");
 // Use Long Polling for development
 bot.start();
 //}

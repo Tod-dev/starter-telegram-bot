@@ -43,8 +43,14 @@ const getDataFromSolarEdge = async (forcePrint = false) => {
         Date.now()
       ).toDateString()}]Solar edge update execution... [forcePrint: ${forcePrint}]`
     );
+    const isTimerElapsedFromlastUpdate = isEnd();
+    if(!isTimerElapsedFromlastUpdate &&  !forcePrint){
+      console.log("NO UPDATE TO DO: return");
+      return "KO";
+    }
     const url = `https://monitoringapi.solaredge.com/site/${process.env.MY_SOLAR_EDGE_SITE}/currentPowerFlow?api_key=${process.env.API_KEY}`;
     //console.log(url);
+    console.log("CALLING SOLAREDGE");
     const response = await axios.get(url);
     let json = await response.data;
     json = json["siteCurrentPowerFlow"];
@@ -71,7 +77,6 @@ const getDataFromSolarEdge = async (forcePrint = false) => {
       }
     }
 
-    const isTimerElapsedFromlastUpdate = isEnd();
     console.log(
       `CHECK: isEnd==true?:${isTimerElapsedFromlastUpdate}, sendingToGrid: ${sendingToGrid} , gridValue>0.3? : ${gridValue}`
     );
